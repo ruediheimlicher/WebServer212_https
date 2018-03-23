@@ -1,0 +1,326 @@
+<h2>AVR web server, remote switch application</h2>
+A simple example application to switch on or off a relay via a web-page or
+via a small application sending UDP packets.
+<br>
+<br>
+The relay is connected via pin PD7.  Switching heavy loads via the relay can cause
+an electromagnetic field that may interfere with the electronics on the
+web server board. A 1K resistor and a 100nF capacitor in parallel to the relay 
+coil will reduce HF interference. Physical separation (3-6cm) and metal shielding will
+help too.
+<br>
+<br>
+Note also that you can not connect a relay directly to PD7. You will need a
+small signal transistor and a diode to cut induced voltage peeks.
+<br>
+
+<pre>
+This is the software for the tuxgraphics.org
+ethernet remote device. See http://tuxgraphics.org/electronics/
+
+Copyright of most software and all diagrams: Guido Socher
+
+Copyright of enc28j60.c/enc28j60.h Pascal Stang (http://www.procyonengineering.com/)
+          and small modifications by Guido Socher
+
+License for everything: GPL V2
+See http://www.gnu.org/licenses/gpl.html
+---------------------------------------------------------------------------
+
+ All parts needed to build this AVR ethernet solution can be ordered from 
+ http://shop.tuxgraphics.org/                                          
+ Note that the magnetics need to fit exactly the requirements of the enc28j60
+ chip. You can not just take any transformer.
+
+!! READ THIS FIRST !!
+---------------------
+! Edit the file main.c and change the 2 lines:
+! static uint8_t mymac[6] = {0x54,0x55,0x58,0x10,0x00,0x24};
+! static uint8_t myip[4] = {10,0,0,24};
+
+
+Check the file "Makefile" and make sure the MCU is set correctly:
+MCU=atmega168
+DUDECPUTYPE=m168
+or
+MCU=atmega88
+DUDECPUTYPE=m88
+or
+MCU=atmega328p
+DUDECPUTYPE=m328
+
+For the first device you build you will not need to change the mymac line.
+But you will probably need to change the IP address (myip). It must be a
+free address from the address range in your home network.
+
+There is a range of private addresses (not routed on the public internet)
+which you can use:
+Netmask          Network Addresses
+255.0.0.0         10.0.0.0 - 10.255.255.255
+255.255.0.0       172.16.0.0 - 172.31.255.255
+255.255.255.0     192.168.0.0 - 192.168.255.255
+
+Example: you wlan router might have 192.168.1.1, your PC might have
+192.168.1.2. This means you could e.g use 192.168.1.10 and leave some
+room for more PCs. If you use DHCP then make sure that the address it not
+double allocated (exclude it from the DHCP range).
+
+You need an avr-gcc development environment in order to compile this.
+You need at least avrlibc-1.4.x !! The atmega88 will not work with earilier 
+version. For atmega328 you will need avrlibc-1.6.4 or higher.
+
+To compile the final software use the command:
+make
+
+Note: windows users may use and modify the supplied win_cmp.bat to setup the
+environment correctly.
+
+The above command will compile the following hex files:
+eth_rem_dev_tcp.hex  test0.hex  test1.hex  test2.hex  test_readSiliconRev.hex
+
+The command
+make load
+
+will execute the avrdude command to load the software.
+E.g something like: 
+   avrdude -p m88 -c stk500v2 -e -U flash:w:eth_rem_dev_tcp.hex
+
+! Note your programmer might interfer with the enc28j60! For the avrusb500
+! with 30cm cable you can normally leave the cable on. For all other programmers
+! it is however saver to remove the programmer cable and power down/up the device.
+! This is because the SPI interface is used for loading of the software and 
+! communication to the enc28j60.
+
+To see a list of all possible build targets run the command:
+make help
+
+Selecting the right clock source
+--------------------------------
+Tuxgraphics hardware sold as of march 2007 is prepared to use the clock
+signal from the enc28j60. To use this you need to change the 
+low fuse byte once from 0x62 to 0x60:
+avrdude -p m88 -c stk500v2 -u -v -U lfuse:w:0x60:m
+
+or just type in your Linux shell:
+make fuse
+
+After the programming of the lfuse the fuse bytes are as follows:
+ fuse bits are as follows:
+ low fuse:  0x60
+ high fuse: 0xdf
+ ext. fuse: 0x01
+
+details of the lfuse bits:
+  CKDIV8 = 0
+  CKOUT  = 1
+  SUT1   = 1
+  SUT0   = 0
+  CKSEL3 = 0
+  CKSEL2 = 0
+  CKSEL1 = 0
+  CKSEL0 = 0
+
+Note: Older hardware must use the atmega88 internal clock (8MHz).
+Don't try to change any fuse bytes on the older hardware!! You will
+not easily be able to undo such an operation on the older hardware.
+It will completely halt and nothing will work anymore.
+The older hardware must use the factory default fuses which look like this:
+low fuse:  0x62
+high fuse: 0xdf
+ext. fuse: 0x01
+
+If you are unsure what the current fuse setting are on the atmega88 
+then you can read the fuse settings with a command like: 
+          avrdude -p m88 -c stk500v2 -v -q
+      The result should be this (default factory settings):
+          avrdude: safemode: lfuse reads as 62
+          avrdude: safemode: hfuse reads as DF
+          avrdude: safemode: efuse reads as 1
+
+Compiling on non-Unix systems
+-----------------------------
+Please use the provided Makefile !!!
+
+It will also work under Windows except for the loading
+of the software. That is compiling will work but not
+"make load". Use then whatever tools and commands to download
+the resuting .hex file into the micrcontroller
+
+Take also a look at the supplied win_cmp.bat file. This bat script
+might be needed to set the environment correctly.
+
+Loading the test software
+-------------------------
+Test of the atmega88:
+make test0.hex
+make load_test0
+
+This will case a LED on PB1 to blink with 1Hz
+
+---------------
+Edit the file test1.c and change the lines (see description above):
+static uint8_t mymac[6] = {0x54,0x55,0x58,0x10,0x00,0x24};
+static uint8_t myip[4] = {10,0,0,24};
+
+make test1.hex
+make load_test1
+
+The program will perform a LED test for the LEDs on the magjack.
+The LEDs will go on and off after startup and then the green LED
+should stray on indicating that the link is up. When you ping the circuit
+it will answer. The yellow LED should blink when the a packet arrives.
+The red LED on PB1 should go on/off with every ping packet.
+
+---------------
+Edit the file test1.c and change the lines (see description above):
+static uint8_t mymac[6] = {0x54,0x55,0x58,0x10,0x00,0x24};
+static uint8_t myip[4] = {10,0,0,24};
+
+make test2.hex
+make load_test2
+
+The green LED on the magjack should go on indicating that the link is up.
+When you ping the circuit it will answer. The yellow LED should blink when 
+the a packet arrives.
+You can use the program udpcom and send the string test to the device. It will
+answer with "hello". Exmaple:
+
+./udpcom/unix/udpcom test 10.0.0.24
+
+II: data: test, ip: 10.0.0.24 port: 1200
+OK: 10.0.0.24: hello
+
+Instead of using udpcom you can also point your web browser to the
+device: http://10.0.0.24
+You should see a web page that says "OK, it works".
+
+A simple web server example (not the eth_rem_dev_tcp.hex)
+---------------------------------------------------------
+The test_readSiliconRev.c (compiles to load_readSiliconRev.hex) reads 
+the enc28j60 silicon revision and displays it. 
+You can use it as a base for a simple application
+where you want to just read data (e.g thermometer)
+
+make 
+make load_readSiliconRev
+
+Read via udp:
+udpcom ver 10.0.0.24
+
+will answer:
+II: data: ver, ip: 10.0.0.24 port: 1200
+OK: 10.0.0.24: ver=4
+
+Read via webbrowser:
+http://10.0.0.24
+
+will display a webpage with:
+ENC28J60 silicon rev is: 4
+
+Using the eth_rem_dev_tcp with UDP
+------------------------------
+The only supported useful function in this release is to switch on or
+of the transistor connected to PD7.
+The command to switch on is: t=1
+The command to switch off is: t=0
+Query the status: t=?
+
+The udpcom syntax is: udpcom password,X=Y IP-addr
+
+Here is an example:
+./udpcom/unix/udpcom secret,t=0 10.0.0.24
+II: data: secret,t=0, ip: 10.0.0.24 port: 1200
+OK: 10.0.0.24: t=0
+
+./udpcom/unix/udpcom secret,t=1 10.0.0.24
+II: data: secret,t=1, ip: 10.0.0.24 port: 1200
+OK: 10.0.0.24: t=1
+
+./udpcom/unix/udpcom secret,t=? 10.0.0.24
+II: data: secret,t=?, ip: 10.0.0.24 port: 1200
+OK: 10.0.0.24: t=1
+
+./udpcom/unix/udpcom secret,t=0 10.0.0.24
+II: data: secret,t=0, ip: 10.0.0.24 port: 1200
+OK: 10.0.0.24: t=0
+
+./udpcom/unix/udpcom secret,t=? 10.0.0.24
+II: data: secret,t=?, ip: 10.0.0.24 port: 1200
+OK: 10.0.0.24: t=0
+
+Using the eth_rem_dev_tcp with TCP/HTTP 
+---------------------------------------
+Point your web browser to
+http://10.0.0.24   (or what ever IP address you have given your hardware)
+
+You should get as answer a web page with:
+Usage: http://10.0.0.24/password
+
+
+Point your web browser to
+http://10.0.0.24/secret
+(secret is the default password)
+
+You should get a web page like this:
+
+       Output is: off
+
+       Switch on
+________________________________
+eth_rem_dev_tcp, tuxgraphics.org 
+
+
+
+Messages form a Network analyser
+--------------------------------
+traffic_XXX.txt and traffic_XXX.cap are
+decoded and binary messages of the communication with the
+eth_rem_dev_tcp. This will help you to understand the code.
+
+Revision history
+----------------
+2006-09-01: version 2.0 -- ported code from the eth_rem_dev (the udp only version)
+                           to this version which implements now a web server
+2006-10-31: version 2.1 -- first public version
+                           
+2006-11-01: version 2.2 -- Editorial changes and better sequence number
+                           handling.
+
+2006-11-26: version 2.3 -- Add webserver functionallity to the
+                           test_readSiliconRev.c example program.
+                           Make the web server port configurable.
+
+2006-12-02: version 2.4 -- added compile commands to this file for those who 
+                           don't have "make"
+                        -- Changed max frame length to accept also long eth packets
+                           (some web browsers (e.g lynx) send a huge "Accept:" list).
+
+2007-02-19: version 2.5 -- resetting of enc chip now only via software
+                        -- updates in this README file
+
+2007-03-07: version 2.6 -- updates for new hardware with ENC28J60 as clock source
+
+2007-03-10: version 2.7 -- add "Pragma: no-cache" to avoid mobile phones and 
+                           proxies displaying the wrong page status.
+
+2007-09-12: version 2.8 -- add missing string.h header 
+                        -- remove the baseurl variable and implement a "moved permanently"
+                           function.
+
+2007-11-10: version 2.9 -- Codevision compiler compatibility
+
+2007-11-28: version 2.10 -- The new avrdude checks if you have a atmega88 or atmega168
+                            this needs to be reflected now in the Makefile. No code change                            otherwise.
+2008-08-03: version 2.11 -- The udp code had a bit unusual behaviour using always 
+                            port 1200 to send the answer to. Most network clients
+                            do not work this way. Now we send udp ansers back to the
+                            port of the request. udpcom was update accordingly.
+                            The TCP code has not changed. Thanks to Lieven Merckx for
+                            suggesting the upd change.
+
+2008-12-26: version 2.12 -- added fuse bit info and adaptations for atmega328p
+2008-12-31: version 2.13 -- updated this README file
+2009-01-18: version 2.14 -- enc silicon B4 errata fixes
+2009-02-12: version 2.15 -- cosmetic fixes in the code
+</pre>
+vim:sw=8:ts=8:si:et
