@@ -1,0 +1,15 @@
+Webserver Current
+
+Quelle: eth_tcp_client_server-dhcp-5.10
+   -> client-www-dhcp
+      -> test_dhcp_www_client_pushbutton
+
+net.h:
+
+ip_arp_udc_tcp.h:
+void client_browse_url urlbuf_varpart als char*
+-> war in .h als const char*
+client_http_post dto
+
+dhcp_client:
+inline static void dhcp_6sec_tick(void): static nach Beschwerde des Compilers

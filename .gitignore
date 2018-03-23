@@ -1,0 +1,21 @@
+.dep
+udpcom
+usbdrv
+twislave.c
+*.eep
+*.elf
+*.lss
+*.lst
+*.map
+*.o
+*.sym
+*.hex
+*.xcodeproj
+Makefile
+build
+runavarice.sh
+hardware
+Readme.txt
+*.scpt
+ Datum_Version_Log_aktualisieren
+*app
