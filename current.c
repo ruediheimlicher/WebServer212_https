@@ -20,7 +20,7 @@ volatile uint8_t                    webstatus =0;     // Byte fuer Ablauf der Me
 volatile uint8_t                    errstatus =0;     // Byte fuer errors der Messung/Uebertragung
 
 volatile uint8_t                    sendWebCount=0;	// Zahler fuer Anzahl TWI-Events,
-                                                      // nach denen Daten des Clients gesendet werden sollen
+// nach denen Daten des Clients gesendet werden sollen
 
 
 volatile uint16_t messungcounter;
@@ -76,7 +76,7 @@ volatile uint8_t stromimpulsindex=0;
 #define CURRENTSTOP                 1     // Bit fuer: Impulse ignorieren
 #define CURRENTWAIT                 2     // Bit fuer: Impulse wieder bearbeiten
 
-#define CALLBACKWAIT                 7     // Bit fuer: warten auf callback
+#define CALLBACKWAIT                7     // Bit fuer: warten auf callback
 #define	IMPULSPIN                  0    // Pin fuer Anzeige Impuls
 
 // Fehlerbits

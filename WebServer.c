@@ -137,8 +137,11 @@ static volatile uint8_t browser_callback_count=0;// Anzahl erfolgreiche Aufrufe 
 
 static volatile uint16_t timer0counter=0;
 volatile uint16_t sekundencounter=0;
+volatile uint16_t oldsekunde=0;
 volatile uint8_t loopstatus=0;
 #define SEKUNDEN_BIT 7
+volatile uint8_t                    intervallsekunden =0;     // Byte fuer errors der Messung/Uebertragung
+
 
 volatile uint16_t                   wattstunden=0;
 volatile uint16_t                   kilowattstunden=0;
@@ -275,16 +278,21 @@ ISR(TIMER1_COMPA_vect)
    sekundencounter++; // verwendet fur min
    loopstatus |= (1<<SEKUNDEN_BIT);
    
-   if (sekundencounter%60 == 0)
+   intervallsekunden++;
+   
+   if (intervallsekunden>= 10)
    {
+      intervallsekunden=0;
       min++;
       if (min >= UPLOADMINUTEN)
       {
          min=0;
+         webstatus |= (1<<DATAOK);
          if (!(webstatus & (1<<CURRENTSEND))) // noch nicht gesetzt
          {
+            
             // ******** prov, setzt pl in Gang
-             webstatus |= (1<<DATAOK);
+            
             // ********
             webstatus |= (1<<CURRENTSEND);
          }
@@ -562,6 +570,7 @@ void browserresult_callback(uint16_t webstatuscode,uint16_t datapos , uint16_t l
 {
  
    browser_callback_count++;
+   return;
    if (webstatuscode==200)
    {
       lcd_gotoxy(16,3);
@@ -582,9 +591,13 @@ void browserresult_callback(uint16_t webstatuscode,uint16_t datapos , uint16_t l
       lcd_puts("bEr\0");
       web_client_send_err++;
    }
-   lcd_gotoxy(4,3);
+   /*
+   lcd_gotoxy(0,3);
    //lcd_putint(web_client_attempts);
-   
+   uint16_t sekundendiff = sekundencounter - oldsekunde;
+   lcd_putint12(sekundendiff);
+   lcd_putc(' ');
+   oldsekunde = sekundencounter;
    //lcd_gotoxy(8,3);
    lcd_putint(browser_callback_count);
    lcd_putc(' ');
@@ -593,7 +606,7 @@ void browserresult_callback(uint16_t webstatuscode,uint16_t datapos , uint16_t l
    //lcd_putint(webstatuscode);
 //   lcd_putc(' ');
 //   lcd_putint(datapos);
-
+*/
 }
 
 // the __attribute__((unused)) is a gcc compiler directive to avoid warnings about unsed variables.
@@ -849,8 +862,8 @@ int main(void)
 //   initOSZI();
   
    // current init
-   InitCurrent();
-   timer2();
+   //InitCurrent();
+   //timer2();
    static volatile uint8_t paketcounter=0;
    
    uint8_t i=0;
@@ -868,25 +881,42 @@ int main(void)
       if (loopstatus & (1<<SEKUNDEN_BIT))
       {
          loopstatus &= ~(1<<SEKUNDEN_BIT);
-         lcd_gotoxy(16,0);
-         lcd_putint(sekundencounter);
+         lcd_gotoxy(14,0);
+         lcd_putint12(sekundencounter);
          
+         /*
          //dns_state
          lcd_gotoxy(0,1);
-         lcd_puts("dns");
+         lcd_puts("dn");
          lcd_puthex(dns_state);
          lcd_putc(' ');
-         lcd_puts("arp");
+         lcd_puts("ap");
          lcd_puthex(gw_arp_state);
+         lcd_putc(' ');
+         */
+         lcd_gotoxy(0,3);
+         //lcd_putint(web_client_attempts);
+         uint16_t sekundendiff = sekundencounter - oldsekunde;
+         lcd_putint12(sekundendiff);
+         lcd_putc(' ');
+         oldsekunde = sekundencounter;
+         //lcd_gotoxy(8,3);
+         lcd_putint(browser_callback_count);
+         //lcd_putc(' ');
+         //lcd_putint(web_client_attempts);
+
       }
       loopcount0++;
-      if (loopcount0>=0x800)
+      if (loopcount0>=0xA00)
       {
          loopcount0=0;
          // *** SPI senden
          //waitspi();
          //StartTransfer(loopcount1,1);
-         
+         lcd_gotoxy(10,1);
+         lcd_puts("ws");
+         lcd_puthex(webstatus);
+         lcd_putc(' ');
          if (loopcount1 >= 0x08)
          {
             
@@ -1066,29 +1096,26 @@ int main(void)
             
             
          }
+        
          // reset after a delay to prevent permanent bouncing
          if (sec>10 && start_web_client==2)
          {
             start_web_client=0;
             sec=0;
          }
-//         continue;
-      }
-      
-      if(dat_p==0)
-      { // plen!=0
-         // check for incomming messages not processed
-         // as part of packetloop_arp_icmp_tcp, e.g udp messages
-         udp_client_check_for_dns_answer(buf,plen);
-         //continue;
-         
+
+         #pragma mark current-routinen 
+         //
          // current-routinen
-         
-         
-         if ((webstatus & (1<<DATAOK))&&(webstatus & (1<<CURRENTSEND))  )// && (!(webstatus & (1<<CALLBACKWAIT))))
+         if ((webstatus & (1<<DATAOK)))// && (webstatus & (1<<DATAOK))  && (!(webstatus & (1<<CALLBACKWAIT))))
          {
-            
             webstatus &= ~(1<<CURRENTSEND);
+            webstatus &= ~(1<<DATAOK); // client_browse nur einmal
+            lcd_gotoxy(12,1);
+            //lcd_puts("ws");
+            lcd_puthex(webstatus);
+            lcd_putc('+');
+            _delay_ms(10);
             web_client_attempts++;
             
             //lcd_clr_line(2);
@@ -1127,12 +1154,12 @@ int main(void)
             
             /*
              char d[24];
-            uint16_t zufall = rand() % 0x1F + 1;
-            float randomleistung =leistung+zufall;
-            dtostrf(randomleistung,10,2,d);
-            char* dd=(char*)trimwhitespace(d); // whitespace weg
-            strcat(dhcpstring,dd);
-            */
+             uint16_t zufall = rand() % 0x1F + 1;
+             float randomleistung =leistung+zufall;
+             dtostrf(randomleistung,10,2,d);
+             char* dd=(char*)trimwhitespace(d); // whitespace weg
+             strcat(dhcpstring,dd);
+             */
             /*
              lcd_gotoxy(13,1);
              lcd_puts(dd);
@@ -1193,8 +1220,8 @@ int main(void)
             sendWebCount++;
             // lcd_gotoxy(0,3);
             // lcd_putint(sendWebCount);
-            webstatus &= ~(1<<DATAOK); // client_browse nur einmal
-            webstatus |= (1<<DATAPEND);
+            //webstatus &= ~(1<<DATAOK); // client_browse nur einmal
+            //webstatus |= (1<<DATAPEND);
             
             //lcd_gotoxy(19,0);
             //lcd_putc('>');
@@ -1202,6 +1229,21 @@ int main(void)
             
             //OSZIHI;
          }
+
+         //
+         
+//         continue;
+      }
+      
+      if(dat_p==0)
+      { // plen!=0
+         // check for incomming messages not processed
+         // as part of packetloop_arp_icmp_tcp, e.g udp messages
+         udp_client_check_for_dns_answer(buf,plen);
+         //continue;
+         
+    
+         
          
          continue;
       }
