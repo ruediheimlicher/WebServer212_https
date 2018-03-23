@@ -100,11 +100,23 @@ static uint8_t web_client_send_err=0;
 
 static uint8_t linkuperr=0;
 
+volatile uint8_t isrcounter=0;
+volatile uint8_t taskcounter=0;
+volatile uint16_t sekundendiff=0;
+
+volatile uint16_t sekundencounter=0;
+volatile uint16_t oldsekunde=0;
+volatile uint8_t loopstatus=0;
+#define SEKUNDEN_BIT 7
+
 
 
 static volatile uint8_t cnt2step=0;
 static int8_t dns_state=0;
 static int8_t gw_arp_state=0;
+
+
+
 
 static uint8_t client_status=0; // Flags fuer senden von Data an Webserver
 #define SENDDEFAULTPAGE 1
@@ -136,9 +148,6 @@ static volatile uint8_t browser_callback_count=0;// Anzahl erfolgreiche Aufrufe 
 
 
 static volatile uint16_t timer0counter=0;
-volatile uint16_t sekundencounter=0;
-volatile uint16_t oldsekunde=0;
-volatile uint8_t loopstatus=0;
 #define SEKUNDEN_BIT 7
 volatile uint8_t                    intervallsekunden =0;     // Byte fuer errors der Messung/Uebertragung
 
@@ -278,17 +287,17 @@ ISR(TIMER1_COMPA_vect)
    sekundencounter++; // verwendet fur min
    loopstatus |= (1<<SEKUNDEN_BIT);
    
-   intervallsekunden++;
+   taskcounter++;
    
-   if (intervallsekunden>= 10)
+   if (taskcounter>= 10)
    {
-      intervallsekunden=0;
+      taskcounter=0;
       min++;
       if (min >= UPLOADMINUTEN)
       {
          min=0;
-         webstatus |= (1<<DATAOK);
-         if (!(webstatus & (1<<CURRENTSEND))) // noch nicht gesetzt
+         //webstatus |= (1<<DATAOK);
+        // if (!(webstatus & (1<<CURRENTSEND))) // noch nicht gesetzt
          {
             
             // ******** prov, setzt pl in Gang
@@ -907,16 +916,38 @@ int main(void)
 
       }
       loopcount0++;
-      if (loopcount0>=0xA00)
+      if (loopcount0>=0x200)
       {
-         loopcount0=0;
-         // *** SPI senden
-         //waitspi();
-         //StartTransfer(loopcount1,1);
+         lcd_gotoxy(10,0);
+         lcd_putint(isrcounter);
+         lcd_gotoxy(0,2);
+         lcd_putint(browser_callback_count);
+         lcd_putc(' ');
+         lcd_putint(web_client_sendok);
+         lcd_putc(' ');
+         lcd_putint(sendWebCount);
+         
          lcd_gotoxy(10,1);
          lcd_puts("ws");
          lcd_puthex(webstatus);
          lcd_putc(' ');
+
+         
+         lcd_gotoxy(0,3);
+         //lcd_putint(web_client_attempts);
+         lcd_putint12(sekundendiff);
+         //lcd_putc(' ');
+
+         loopcount0=0;
+         // *** SPI senden
+         //waitspi();
+         //StartTransfer(loopcount1,1);
+         /*
+         lcd_gotoxy(10,1);
+         lcd_puts("ws");
+         lcd_puthex(webstatus);
+         lcd_putc(' ');
+          
          if (loopcount1 >= 0x08)
          {
             
@@ -1100,7 +1131,7 @@ int main(void)
          // reset after a delay to prevent permanent bouncing
          if (sec>10 && start_web_client==2)
          {
-            start_web_client=0;
+    //        start_web_client=0;
             sec=0;
          }
 
@@ -1115,7 +1146,7 @@ int main(void)
             //lcd_puts("ws");
             lcd_puthex(webstatus);
             lcd_putc('+');
-            _delay_ms(10);
+            
             web_client_attempts++;
             
             //lcd_clr_line(2);
@@ -1210,6 +1241,7 @@ int main(void)
             client_browse_url((char*)PSTR("/cgi-bin/dhcp.pl?"),dhcpstringsauber,PSTR(WEBSERVER_VHOST),&browserresult_callback,otherside_www_ip,gwmac);
             webstatus |= (1<<CALLBACKWAIT); // warten auf callback
             
+            //_delay_ms(50);
             
             // Daten an strom.pl schicken
             

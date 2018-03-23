@@ -165,7 +165,7 @@ ISR(TIMER2_COMPA_vect) // CTC Timer2
       if (sendintervallzeit == SENDINTERVALL)
       {
          sendintervallzeit=0;
-         webstatus |= (1<<DATALOOP);
+         //webstatus |= (1<<DATALOOP);
       }
    }
 }
