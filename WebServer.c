@@ -66,7 +66,6 @@ static uint8_t mymac[6] = {0x54,0x55,0x58,0x10,0x00,0x99};
 
 #define LOCAL_VHOST "localhost/public_html"
 
-//#define WEBSERVER_VHOST "tuxgraphics.org"
 static uint8_t otherside_www_ip[4];
 // My own IP (DHCP will provide a value for it):
 // DHCP
@@ -77,6 +76,7 @@ static uint8_t otherside_www_ip[4];
 static uint8_t myip[4] = {192,168,1,212};
 static uint8_t gwip[4] = {192,168,1,1};
 static char dhcpstring[128]; // string fuer Daten zu dhcp.pl
+//static char dhcpstringsauber[128];
 static char pingstring[64]; // string fuer ping-antwort zu dhcp.pl
 
 
@@ -275,7 +275,7 @@ ISR(TIMER1_COMPA_vect)
    if (sec>5) // refresh, DHCP erfordert periodischen refresh
    {
       sec=0;
-      dhcp_6sec_tick(); // inkkrementiert dhcp_6sec_cnt
+ //     dhcp_6sec_tick(); // inkkrementiert dhcp_6sec_cnt
    }
    
    dhcpsec++;
@@ -289,11 +289,11 @@ ISR(TIMER1_COMPA_vect)
    
    taskcounter++;
    
-   if (taskcounter>= 10)
+   if (taskcounter>= 8)
    {
       taskcounter=0;
       min++;
-      if (min >= UPLOADMINUTEN)
+     // if (min >= UPLOADMINUTEN)
       {
          min=0;
          //webstatus |= (1<<DATAOK);
@@ -577,13 +577,12 @@ void ping_callback(uint8_t *ip)
 // the __attribute__((unused)) is a gcc compiler directive to avoid warnings about unsed variables.
 void browserresult_callback(uint16_t webstatuscode,uint16_t datapos , uint16_t len )
 {
- 
    browser_callback_count++;
-   return;
+   //return;
    if (webstatuscode==200)
    {
-      lcd_gotoxy(16,3);
-      lcd_puts("   \0");
+      //lcd_gotoxy(16,3);
+      //lcd_puts("   \0");
       lcd_gotoxy(16,3);
       lcd_puts("bOK\0");
 
@@ -594,28 +593,15 @@ void browserresult_callback(uint16_t webstatuscode,uint16_t datapos , uint16_t l
    else
    {
       
-      lcd_gotoxy(16,3);
-      lcd_puts("   \0");
+      //lcd_gotoxy(16,3);
+      //lcd_puts("   \0");
       lcd_gotoxy(16,3);
       lcd_puts("bEr\0");
       web_client_send_err++;
    }
-   /*
-   lcd_gotoxy(0,3);
-   //lcd_putint(web_client_attempts);
-   uint16_t sekundendiff = sekundencounter - oldsekunde;
-   lcd_putint12(sekundendiff);
-   lcd_putc(' ');
+   sekundendiff = sekundencounter - oldsekunde;
    oldsekunde = sekundencounter;
-   //lcd_gotoxy(8,3);
-   lcd_putint(browser_callback_count);
-   lcd_putc(' ');
-   lcd_putint(web_client_sendok);
-   //lcd_gotoxy(12,3);
-   //lcd_putint(webstatuscode);
-//   lcd_putc(' ');
-//   lcd_putint(datapos);
-*/
+ 
 }
 
 // the __attribute__((unused)) is a gcc compiler directive to avoid warnings about unsed variables.
@@ -890,7 +876,7 @@ int main(void)
       if (loopstatus & (1<<SEKUNDEN_BIT))
       {
          loopstatus &= ~(1<<SEKUNDEN_BIT);
-         lcd_gotoxy(14,0);
+         lcd_gotoxy(15,0);
          lcd_putint12(sekundencounter);
          
          /*
@@ -903,14 +889,14 @@ int main(void)
          lcd_puthex(gw_arp_state);
          lcd_putc(' ');
          */
-         lcd_gotoxy(0,3);
+         //lcd_gotoxy(0,3);
          //lcd_putint(web_client_attempts);
-         uint16_t sekundendiff = sekundencounter - oldsekunde;
-         lcd_putint12(sekundendiff);
-         lcd_putc(' ');
-         oldsekunde = sekundencounter;
+         //uint16_t sekundendiff = sekundencounter - oldsekunde;
+         //lcd_putint12(sekundendiff);
+         //lcd_putc(' ');
+         //oldsekunde = sekundencounter;
          //lcd_gotoxy(8,3);
-         lcd_putint(browser_callback_count);
+         //lcd_putint(browser_callback_count);
          //lcd_putc(' ');
          //lcd_putint(web_client_attempts);
 
@@ -918,23 +904,29 @@ int main(void)
       loopcount0++;
       if (loopcount0>=0x200)
       {
-         lcd_gotoxy(10,0);
-         lcd_putint(isrcounter);
+         
+         //lcd_gotoxy(10,0);
+         //lcd_putc('i');
+         //lcd_putint(isrcounter);
          lcd_gotoxy(0,2);
+         lcd_putc('b');
          lcd_putint(browser_callback_count);
-         lcd_putc(' ');
+         lcd_putc('w');
          lcd_putint(web_client_sendok);
-         lcd_putc(' ');
+         lcd_putc('s');
          lcd_putint(sendWebCount);
          
          lcd_gotoxy(10,1);
          lcd_puts("ws");
          lcd_puthex(webstatus);
+         lcd_gotoxy(14,1);
          lcd_putc(' ');
+         
 
          
          lcd_gotoxy(0,3);
          //lcd_putint(web_client_attempts);
+         lcd_putc('d');
          lcd_putint12(sekundendiff);
          //lcd_putc(' ');
 
@@ -942,7 +934,7 @@ int main(void)
          // *** SPI senden
          //waitspi();
          //StartTransfer(loopcount1,1);
-         /*
+         
          lcd_gotoxy(10,1);
          lcd_puts("ws");
          lcd_puthex(webstatus);
@@ -953,6 +945,7 @@ int main(void)
             
             loopcount1 = 0;
             //OSZITOGG;
+            LOOPLED_PORT ^= (1<<LOOPLED);
             //LOOPLEDPORT |= (1<<TWILED);           // TWILED setzen, Warnung
             //TWBR=0;
             //lcdinit();
@@ -962,16 +955,15 @@ int main(void)
             loopcount1++;
          }
          
-         /*
-         if (LOOPLEDPORTPIN &(1<<LOOPLED))
+         
+         if (LOOPLED_PIN &(1<<LOOPLED))
          {
             sec++; // zaehler fuer verzoegerung von Ping-aufnahme
          }
-          */
-         LOOPLED_PORT ^= (1<<LOOPLED);
+          
+        // LOOPLED_PORT ^= (1<<LOOPLED);
       }
       
-#pragma mark current routines
       //**	Beginn Current-Routinen	***********************
       
       
@@ -1138,7 +1130,7 @@ int main(void)
          #pragma mark current-routinen 
          //
          // current-routinen
-         if ((webstatus & (1<<DATAOK)))// && (webstatus & (1<<DATAOK))  && (!(webstatus & (1<<CALLBACKWAIT))))
+         if ((webstatus & (1<<CURRENTSEND)))// && (webstatus & (1<<DATAOK))  && (!(webstatus & (1<<CALLBACKWAIT))))
          {
             webstatus &= ~(1<<CURRENTSEND);
             webstatus &= ~(1<<DATAOK); // client_browse nur einmal
@@ -1146,7 +1138,7 @@ int main(void)
             //lcd_puts("ws");
             lcd_puthex(webstatus);
             lcd_putc('+');
-            
+            _delay_ms(50);
             web_client_attempts++;
             
             //lcd_clr_line(2);
@@ -1155,7 +1147,7 @@ int main(void)
             // start_web_client=2;
             //strcat("pw=Pong&strom=360\0",(char*)teststring);
             
-            start_web_client=0; // ping wieder ermoeglichen
+            //start_web_client=0; // ping wieder ermoeglichen
             
             // dhcp-string aufbauen
             mk_net_str(dhcpstr,pingsrcip,4,'.',10);
@@ -1230,14 +1222,22 @@ int main(void)
             strcat(dhcpstring,ee);
             
             // string putzen
-            char* dhcpstringsauber =trimwhitespace(dhcpstring);
+            char* dhcpstringsauber = trimwhitespace(dhcpstring);
+            uint8_t ld = strlen(dhcpstring);
+            lcd_gotoxy(0,0);
+            lcd_putc('d');
+            lcd_putint(ld);
             
-            
+            uint8_t ls = strlen(dhcpstringsauber);
+            lcd_putc('s');
+            lcd_putint(ls);
+          
             // dhcp-string aufbauen end
             
             // check
             
-            
+            lcd_gotoxy(16,3);
+            lcd_puts("   \0");
             client_browse_url((char*)PSTR("/cgi-bin/dhcp.pl?"),dhcpstringsauber,PSTR(WEBSERVER_VHOST),&browserresult_callback,otherside_www_ip,gwmac);
             webstatus |= (1<<CALLBACKWAIT); // warten auf callback
             
@@ -1264,7 +1264,7 @@ int main(void)
 
          //
          
-//         continue;
+         continue;
       }
       
       if(dat_p==0)

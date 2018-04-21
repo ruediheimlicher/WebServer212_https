@@ -11,9 +11,10 @@
 
 #define TEST 1
 
-#define LOOPLED_PORT  PORTD
-#define LOOPLED_DDR   DDRD
-#define LOOPLED         7
+#define LOOPLED_PORT  PORTB
+#define LOOPLED_DDR   DDRB
+#define LOOPLED_PIN   PINB
+#define LOOPLED         1
 
 
 // set output to VCC, red LED off
